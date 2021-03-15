@@ -1,0 +1,55 @@
+#!/bin/sh
+# usage: evalzsh [version] < script
+# USE_DOCKER=true evalzsh [version] < script
+# env USE_DOCKER=true evalzsh [version] < script # for non-bourne shells
+
+# requires:
+# * podman (or docker really)
+# * pulling all the desired tags first
+# podman pull --all-tags zshusers/zsh
+
+# testing a script against every supported zsh version
+# podman images --filter='reference=zshusers/zsh' --format='{{ .Tag }}' |
+# while read -r tag; do
+#   echo "zsh version: $tag"
+#   evalzsh "$tag" < script
+# done
+
+# don't nice background jobs
+[ -n "$ZSH_VERSION" ] && setopt nobgnice
+
+tag=${1:-latest}
+
+container() {
+  if [ -n "$USE_DOCKER" ]; then
+    stdbuf -oL docker "$@"
+  else
+    stdbuf -oL podman "$@"
+  fi
+}
+
+# feeding input to the container
+{ cat; printf '%s\n' 'echo "exitstatus: $?"'; } |
+
+# simply read container data to stdout
+container run --rm -i "--net=${NETWORK:-none}" "--pull=${PULL:-never}" \
+  "--label=evalzsh=$$" \
+  "zshusers/zsh:$tag" \
+  zsh -l --extendedglob --multibyte 2>/dev/null &
+
+pid=$!
+# don't allow the command to run for more than 8 seconds from now
+if [ -n "$TIMEOUT" ]; then
+  case "$TIMEOUT" in
+    *[!0123456789]*) TIMEOUT=8;;
+  esac
+  (
+    sleep "$TIMEOUT"
+    container kill "$(container ps -f "label=evalzsh=$$" -q)" >/dev/null 2>&1
+    echo "$TIMEOUT" second timeout reached
+  ) &
+  cleanup=$!
+  trap 'kill "$cleanup" >/dev/null 2>&1' EXIT
+fi
+
+wait "$pid"
