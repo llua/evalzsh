@@ -35,7 +35,7 @@ container() {
 container run --rm -i "--net=${NETWORK:-none}" "--pull=${PULL:-never}" \
   "--label=evalzsh=$$" \
   "zshusers/zsh:$tag" \
-  zsh -l --extendedglob --multibyte 2>/dev/null &
+  zsh -l --extendedglob --multibyte &
 
 pid=$!
 # don't allow the command to run for more than 8 seconds from now
