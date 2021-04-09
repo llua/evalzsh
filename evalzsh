@@ -33,6 +33,7 @@ container() {
 
 # simply read container data to stdout
 container run --rm -i "--net=${NETWORK:-none}" "--pull=${PULL:-never}" \
+  "--workdir=${WORKDIR:-/root}" \
   "--label=evalzsh=$$" \
   "zshusers/zsh:$tag" \
   zsh -l --extendedglob --multibyte &
