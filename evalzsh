@@ -20,11 +20,11 @@
 
 tag=${1:-latest}
 
-container() {
+manager() {
   if [ -n "$USE_DOCKER" ]; then
-    stdbuf -oL docker "$@"
+    docker "$@"
   else
-    stdbuf -oL podman "$@"
+    podman "$@"
   fi
 }
 
@@ -32,7 +32,7 @@ container() {
 { cat; printf '%s\n' 'echo "exitstatus: $?"'; } |
 
 # simply read container data to stdout
-container run --rm -i "--net=${NETWORK:-none}" "--pull=${PULL:-never}" \
+manager run --rm -i "--net=${NETWORK:-none}" "--pull=${PULL:-never}" \
   "--workdir=${WORKDIR:-/root}" \
   "--label=evalzsh=$$" \
   "zshusers/zsh:$tag" \
