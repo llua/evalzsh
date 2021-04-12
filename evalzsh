@@ -22,9 +22,9 @@ tag=${1:-latest}
 
 manager() {
   if [ -n "$USE_DOCKER" ]; then
-    stdbuf -oL docker "$@"
+    docker "$@"
   else
-    stdbuf -oL podman "$@"
+    podman "$@"
   fi
 }
 
