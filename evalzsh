@@ -46,7 +46,7 @@ if [ -n "$TIMEOUT" ]; then
   esac
   (
     sleep "$TIMEOUT"
-    container kill "$(container ps -f "label=evalzsh=$$" -q)" >/dev/null 2>&1
+    manager kill "$(manager ps -f "label=evalzsh=$$" -q)" >/dev/null 2>&1
     echo "$TIMEOUT" second timeout reached
   ) &
   cleanup=$!
