@@ -20,7 +20,7 @@
 
 tag=${1:-latest}
 
-manager() {
+runtime() {
   if [ -n "$USE_DOCKER" ]; then
     docker "$@"
   else
@@ -28,29 +28,32 @@ manager() {
   fi
 }
 
+manager() {
+  runtime run --rm -i "--net=${NETWORK:-none}" "--pull=${PULL:-never}" \
+    "--workdir=${WORKDIR:-/root}" \
+    "--label=evalzsh=$$" \
+    "zshusers/zsh:$tag" \
+    zsh -li --extendedglob --multibyte -c 'source /dev/stdin'
+}
+
 # feeding input to the container
 { cat; printf '%s\n' 'echo "exitstatus: $?"'; } |
 
-# simply read container data to stdout
-manager run --rm -i "--net=${NETWORK:-none}" "--pull=${PULL:-never}" \
-  "--workdir=${WORKDIR:-/root}" \
-  "--label=evalzsh=$$" \
-  "zshusers/zsh:$tag" \
-  zsh -l --extendedglob --multibyte &
-
-pid=$!
-# don't allow the command to run for more than 8 seconds from now
-if [ -n "$TIMEOUT" ]; then
+if [ -z "$TIMEOUT" ]; then
+  manager
+else
   case "$TIMEOUT" in
+    # don't allow the command to run for more than 8 seconds from now
     *[!0123456789]*) TIMEOUT=8;;
   esac
+  manager &
+  pid=$!
   (
     sleep "$TIMEOUT"
-    manager kill "$(manager ps -f "label=evalzsh=$$" -q)" >/dev/null 2>&1
+    runtime kill "$(runtime ps -f "label=evalzsh=$$" -q)" >/dev/null 2>&1
     echo "$TIMEOUT" second timeout reached
   ) &
   cleanup=$!
   trap 'kill "$cleanup" >/dev/null 2>&1' EXIT
+  wait "$pid"
 fi
-
-wait "$pid"
